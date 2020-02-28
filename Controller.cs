@@ -65,7 +65,6 @@ namespace Chip8
                     if (cpu.Get(x, y))
                     {
                         Render.Rect(new Vector2(x * scale, y * scale), scale, scale, Color.White);
-                        //Console.WriteLine("painting " + x + " " + y);
                     }
                 }
             }

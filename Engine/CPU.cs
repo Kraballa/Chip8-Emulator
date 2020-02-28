@@ -17,7 +17,7 @@ namespace Chip8.Engine
         private ushort I;
         private ushort pc;
 
-        public byte[] screen;
+        public bool[,] screen;
         private bool[] input;
 
         //stack and stack pointer
@@ -59,7 +59,7 @@ namespace Chip8.Engine
         {
             memory = new byte[4096];
             v = new byte[16];
-            screen = new byte[256];
+            screen = new bool[64,32];
             input = new bool[16];
             stack = new ushort[16];
             rand = new Random();
@@ -69,7 +69,7 @@ namespace Chip8.Engine
         {
             ResetCPU();
 
-            LoadRom("Roms/testrom2.ch8");
+            LoadRom("Roms/Tetris.ch8");
 
             Console.WriteLine("rom successfully loaded");
             DrawFlag = true;
@@ -152,10 +152,7 @@ namespace Chip8.Engine
 
         public bool Get(int x, int y)
         {
-            int xi = x / 8;
-            int xb = x % 8;
-
-            return (screen[(y * 8) + xi] & 1 << xb) != 0;
+            return screen[x, y];
         }
 
         private void Set(int x, int y)
@@ -163,7 +160,7 @@ namespace Chip8.Engine
             int xi = x / 8;
             int xb = x % 8;
 
-            screen[(y * 8) + xi] |= (byte)(1 << xb);
+            screen[x,y] = true;
         }
 
         private void Unset(int x, int y)
@@ -171,14 +168,15 @@ namespace Chip8.Engine
             int xi = x / 8;
             int xb = x % 8;
 
-            screen[(y * 8) + xi] &= (byte)(0xFF - (1 << xb));
+            screen[x, y] = false;
         }
 
         private void ClearDisplay()
         {
             //Console.WriteLine("clearing display");
-            for (int i = 0; i < screen.Length; i++)
-                screen[i] = 0;
+            for (int x = 0; x < 64; x++)
+                for (int y = 0; y < 32; y++)
+                    screen[x, y] = false;
         }
 
         #endregion
