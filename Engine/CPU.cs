@@ -69,7 +69,7 @@ namespace Chip8.Engine
         {
             ResetCPU();
 
-            LoadRom("Roms/Tetris.ch8");
+            LoadRom("Roms/testrom2.ch8");
 
             Console.WriteLine("rom successfully loaded");
             DrawFlag = true;
@@ -310,7 +310,7 @@ namespace Chip8.Engine
                     break;
 
                 case 0xC000:
-                    v[vx] = (byte)(rand.Next(255) & (opcode & 0x00FF));
+                    v[vx] = (byte)(rand.Next() & (opcode & 0x00FF));
                     pc += 2;
                     break;
 
