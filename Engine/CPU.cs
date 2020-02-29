@@ -116,6 +116,7 @@ namespace Chip8.Engine
 
             //fetch opcode
             opcode = (ushort)(memory[pc] << 8 | memory[pc + 1]);
+            pc += 2;
             ExecuteOpcode();
 
             //update timers
@@ -242,46 +243,28 @@ namespace Chip8.Engine
                     break;
 
                 case 0x3000:
-                    if(v[vx] == (opcode & 0x00FF))
-                    {
-                        pc += 4;
-                    }
-                    else
-                    {
+                    if (v[vx] == (opcode & 0x00FF))
                         pc += 2;
-                    }
                     break;
 
                 case 0x4000:
                     if (v[vx] != (opcode & 0x00FF))
-                    {
-                        pc += 4;
-                    }
-                    else
-                    {
                         pc += 2;
-                    }
+
                     break;
 
                 case 0x5000:
                     if (v[vx] == v[vy])
-                    {
-                        pc += 4;
-                    }
-                    else
-                    {
                         pc += 2;
-                    }
+
                     break;
 
                 case 0x6000:
                     v[vx] = (byte)(opcode & 0x00FF);
-                    pc += 2;
                     break;
 
                 case 0x7000:
                     v[vx] += (byte)(opcode & 0x00FF);
-                    pc += 2;
                     break;
 
                 case 0x8000:
@@ -290,28 +273,20 @@ namespace Chip8.Engine
 
                 case 0x9000:
                     if (v[vx] != v[vy])
-                    {
-                        pc += 4;
-                    }
-                    else
-                    {
                         pc += 2;
-                    }
+
                     break;
 
                 case 0xA000:
                     I = (ushort)(opcode & 0x0FFF);
-                    pc += 2;
                     break;
 
                 case 0xB000:
                     pc = (ushort)(v[0] + (opcode & 0xFFF));
-                    pc += 2;
                     break;
 
                 case 0xC000:
                     v[vx] = (byte)(rand.Next() & (opcode & 0x00FF));
-                    pc += 2;
                     break;
 
                 case 0xD000:
@@ -331,7 +306,6 @@ namespace Chip8.Engine
                     if (changed)
                         v[0xf] = 1;
                     DrawFlag = true;
-                    pc += 2;
                     break;
 
                 case 0xE000:
@@ -354,7 +328,6 @@ namespace Chip8.Engine
             {
                 case 0x0000:
                     ClearDisplay();
-                    pc += 2;
                     break;
                 case 0x000E:
                     --sp;
@@ -370,21 +343,17 @@ namespace Chip8.Engine
             {
                 case 0x0000:
                     v[vx] = v[vy];
-                    pc += 2;
                     break;
                 case 0x0001:
                     v[vx] = (byte)(v[vx] | v[vy]);
-                    pc += 2;
                     break;
 
                 case 0x0002:
                     v[vx] = (byte)(v[vx] & v[vy]);
-                    pc += 2;
                     break;
 
                 case 0x0003:
                     v[vx] = (byte)(v[vx] ^ v[vy]);
-                    pc += 2;
                     break;
 
                 case 0x0004:
@@ -397,7 +366,6 @@ namespace Chip8.Engine
                         v[0xF] = 0;
                     }
                     v[vx] += v[vy];
-                    pc += 2;
                     break;
 
                 case 0x0005:
@@ -410,13 +378,11 @@ namespace Chip8.Engine
                         v[0xF] = 0;
                     }
                     v[vx] -= v[vy];
-                    pc += 2;
                     break;
 
                 case 0x0006:
                     v[0xF] = (byte)(v[vx] & 1);
                     v[vx] >>= 1;
-                    pc += 2;
                     break;
 
                 case 0x0007:
@@ -429,18 +395,15 @@ namespace Chip8.Engine
                         v[0xF] = 0;
                     }
                     v[vx] = (byte)(v[vy] - v[vx]);
-                    pc += 2;
                     break;
 
                 case 0x000E:
                     v[0xF] = (byte)(v[vx] & (1 << 7));
                     v[vx] <<= 1;
-                    pc += 2;
                     break;
 
                 default:
                     UnknownOpcode();
-                    pc += 2;
                     break;
             }
         }
@@ -452,18 +415,15 @@ namespace Chip8.Engine
                 case 0x009E:
                     if (input[v[vx]])
                         pc += 2;
-                    pc += 2;
                     break;
 
                 case 0x00A1:
                     if (!input[v[vx]])
                         pc += 2;
-                    pc += 2;
                     break;
 
                 default:
                     UnknownOpcode();
-                    pc += 2;
                     break;
             }
         }
@@ -475,17 +435,14 @@ namespace Chip8.Engine
             {
                 case 0x0007:
                     v[vx] = (byte)delayTimer;
-                    pc += 2;
                     break;
 
                 case 0x0015:
                     delayTimer = (char)v[vx];
-                    pc += 2;
                     break;
 
                 case 0x0018:
                     soundTimer = (char)v[vx];
-                    pc += 2;
                     break;
 
                 case 0x001E:
@@ -495,19 +452,16 @@ namespace Chip8.Engine
                         v[0x0F] = 1;
                     else
                         v[0x0F] = 0;
-                    pc += 2;
                     break;
 
                 case 0x0029:
                     I = (ushort)((opcode & 0x000F) * 5);
-                    pc += 2;
                     break;
 
                 case 0x0033:
                     memory[I] = (byte)(v[vx] / 100);
                     memory[I + 1] = (byte)(v[vx] / 10 % 10);
                     memory[I + 2] = (byte)(v[vx] % 100 % 10);
-                    pc += 2;
                     break;
 
                 case 0x0055:
@@ -515,7 +469,6 @@ namespace Chip8.Engine
                     {
                         memory[I + i] = v[i];
                     }
-                    pc += 2;
                     break;
 
                 case 0x0065:
@@ -523,12 +476,10 @@ namespace Chip8.Engine
                     {
                         v[i] = memory[I + i];
                     }
-                    pc += 2;
                     break;
 
                 default:
                     UnknownOpcode();
-                    pc += 2;
                     break;
             }
         }
