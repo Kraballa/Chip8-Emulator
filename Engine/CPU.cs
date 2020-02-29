@@ -329,9 +329,14 @@ namespace Chip8.Engine
                 case 0x0000:
                     ClearDisplay();
                     break;
+
                 case 0x000E:
                     --sp;
                     pc = stack[sp];
+                    break;
+
+                default:
+                    UnknownOpcode();
                     break;
             }
         }
@@ -344,6 +349,7 @@ namespace Chip8.Engine
                 case 0x0000:
                     v[vx] = v[vy];
                     break;
+
                 case 0x0001:
                     v[vx] = (byte)(v[vx] | v[vy]);
                     break;
