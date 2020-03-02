@@ -14,7 +14,7 @@ namespace Chip8
         GraphicsDeviceManager graphics;
         public static Controller Instance;
 
-        private CPU cpu = new CPU();
+        private CPU cpu = new CPU("Roms/Tron.ch8");
 
         private const int scale = 10;
 

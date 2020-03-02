@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Input;
 using System;
 using System.IO;
+using System.Threading;
 
 namespace Chip8.Engine
 {
@@ -55,7 +56,9 @@ namespace Chip8.Engine
           0xF0, 0x80, 0xF0, 0x80, 0x80  // F
         };
 
-        public CPU()
+        private string rom;
+
+        public CPU(string rom)
         {
             memory = new byte[4096];
             v = new byte[16];
@@ -63,13 +66,14 @@ namespace Chip8.Engine
             input = new bool[16];
             stack = new ushort[16];
             rand = new Random();
+            this.rom = rom;
         }
 
         public void Initialize()
         {
             ResetCPU();
 
-            LoadRom("Roms/testrom2.ch8");
+            LoadRom(rom);
 
             Console.WriteLine("rom successfully loaded");
             DrawFlag = true;
@@ -264,7 +268,8 @@ namespace Chip8.Engine
                     break;
 
                 case 0x7000:
-                    v[vx] += (byte)(opcode & 0x00FF);
+                    int num0 = v[vx] + (opcode & 0x00FF);
+                    v[vx] += (byte)(num0 %256);
                     break;
 
                 case 0x8000:
@@ -286,25 +291,24 @@ namespace Chip8.Engine
                     break;
 
                 case 0xC000:
-                    v[vx] = (byte)(rand.Next() & (opcode & 0x00FF));
+                    v[vx] = (byte)(rand.Next(0xFF) & (opcode & 0x00FF));
                     break;
 
                 case 0xD000:
-                    bool changed = false;
+                    v[0xF] = 0;
                     for( int y = 0; y < (opcode & 0x000F); y++)
                     {
                         int inc = 7;
                         for (int x = 0; x < 8; x++)
                         {
-                            bool value = (memory[I + y] & (1 << (inc % 8))) != 0;
+                            bool num1 = (memory[I + y] & (1 << (inc % 8))) != 0;
                             //Console.WriteLine(string.Format("reading bit {0} of adress {1} (value: 0x{3:X}): {2}", inc%8,I + y - vy, value,memory[I + y - vy]));
-                            changed = changed | SetPixel(x + v[vx], y + v[vy], value);
+                            if (SetPixel(x + v[vx], y + v[vy], num1))
+                                v[0xF] = 1;
                             inc--;
                         }
 
                     }
-                    if (changed)
-                        v[0xf] = 1;
                     DrawFlag = true;
                     break;
 
@@ -343,7 +347,7 @@ namespace Chip8.Engine
 
         private void Op8()
         {
-
+            int num;
             switch (opcode & 0x000F)
             {
                 case 0x0000:
@@ -363,27 +367,31 @@ namespace Chip8.Engine
                     break;
 
                 case 0x0004:
-                    if(v[vy] > (0xFF - v[vx]))
+                    num = v[vx] + v[vy];
+                    if (num > 255)
                     {
                         v[0xF] = 1; //carry
+                        num %= 256;
                     }
                     else
                     {
                         v[0xF] = 0;
                     }
-                    v[vx] += v[vy];
+                    v[vx] = (byte)num;
                     break;
 
                 case 0x0005:
-                    if (v[vy] > v[vx])
+                    num = v[vx] - v[vy];
+                    if (num < 0)
                     {
                         v[0xF] = 1; //carry
+                        num += 256;
                     }
                     else
                     {
                         v[0xF] = 0;
                     }
-                    v[vx] -= v[vy];
+                    v[vx] = (byte)num;
                     break;
 
                 case 0x0006:
@@ -392,20 +400,25 @@ namespace Chip8.Engine
                     break;
 
                 case 0x0007:
-                    if(v[vx] - v[vy] < 0)
+                    num = v[vy] - v[vx];
+                    if(num < 0)
                     {
-                        v[0x0F] = 1;
+                        num += 256;
+                        v[0xF] = 0;
                     }
                     else
                     {
-                        v[0xF] = 0;
+                        v[0xF] = 1;
                     }
-                    v[vx] = (byte)(v[vy] - v[vx]);
+                    v[vx] = (byte)num;
                     break;
 
                 case 0x000E:
-                    v[0xF] = (byte)(v[vx] & (1 << 7));
-                    v[vx] <<= 1;
+                    v[0xF] = (byte)((v[vx] & 0x80) >> 7);
+                    num = v[vx] << 1;
+                    if (num > 255)
+                        num %= 256;
+                    v[vx] = (byte)num;
                     break;
 
                 default:
@@ -443,6 +456,26 @@ namespace Chip8.Engine
                     v[vx] = (byte)delayTimer;
                     break;
 
+                case 0x000A:
+                    bool[] oldInputs = (bool[])input.Clone();
+                    bool loop = false;
+                    v[vx] = 1;
+                    while (loop)
+                    {
+                        ReadInput();
+                        for(int i = 0; i < oldInputs.Length; i++)
+                        {
+                            if (oldInputs[i] != input[i])
+                            {
+                                loop = false;
+                                v[vx] = (byte)i;
+                            }
+                                
+                        }
+                        Thread.Sleep(10);
+                    }
+                    break;
+
                 case 0x0015:
                     delayTimer = (char)v[vx];
                     break;
@@ -452,22 +485,17 @@ namespace Chip8.Engine
                     break;
 
                 case 0x001E:
-                    ushort old = I;
                     I += v[vx];
-                    if (old < I)
-                        v[0x0F] = 1;
-                    else
-                        v[0x0F] = 0;
                     break;
 
                 case 0x0029:
-                    I = (ushort)((opcode & 0x000F) * 5);
+                    I = (ushort)(v[vx] * 5);
                     break;
 
                 case 0x0033:
                     memory[I] = (byte)(v[vx] / 100);
                     memory[I + 1] = (byte)(v[vx] / 10 % 10);
-                    memory[I + 2] = (byte)(v[vx] % 100 % 10);
+                    memory[I + 2] = (byte)(v[vx] % 10);
                     break;
 
                 case 0x0055:
