@@ -142,6 +142,8 @@ namespace Chip8.Engine
 
         public bool Get(int x, int y)
         {
+            x %= 64;
+            y %= 32;
             return screen[x + y * WIDTH];
         }
 
@@ -244,7 +246,7 @@ namespace Chip8.Engine
                     break;
 
                 case 0x7000:
-                    int num0 = v[vx] + (opcode & 0x00FF);
+                    int num0 = (opcode & 0x00FF);
                     v[vx] += (byte)(num0 %256);
                     break;
 
@@ -308,15 +310,18 @@ namespace Chip8.Engine
 
         private void Op0()
         {
-            switch (opcode & 0x000F)
+            switch (opcode & 0x00FF)
             {
-                case 0x0000:
+                case 0x00E0:
                     ClearDisplay();
                     break;
 
-                case 0x000E:
+                case 0x00EE:
                     --sp;
                     pc = stack[sp];
+                    break;
+                case 0x0000:
+                    //nop
                     break;
 
                 default:
@@ -436,6 +441,7 @@ namespace Chip8.Engine
                     break;
 
                 case 0x000A:
+                    //currently nonfunctional. always returns with key 1.
                     bool[] oldInputs = (bool[])input.Clone();
                     bool loop = false;
                     v[vx] = 1;
