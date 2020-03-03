@@ -7,6 +7,9 @@ namespace Chip8.Engine
 {
     public class CPU
     {
+        public const int WIDTH = 64;
+        public const int HEIGHT = 32;
+
         //current opcode
         private ushort opcode;
 
@@ -18,7 +21,7 @@ namespace Chip8.Engine
         private ushort I;
         private ushort pc;
 
-        public bool[,] screen;
+        public bool[] screen;
         private bool[] input;
 
         //stack and stack pointer
@@ -62,7 +65,7 @@ namespace Chip8.Engine
         {
             memory = new byte[4096];
             v = new byte[16];
-            screen = new bool[64,32];
+            screen = new bool[WIDTH * HEIGHT];
             input = new bool[16];
             stack = new ushort[16];
             rand = new Random();
@@ -137,51 +140,24 @@ namespace Chip8.Engine
 
         #region Display Helper Methods
 
-        private bool SetPixel(int x, int y, bool value)
+        public bool Get(int x, int y)
+        {
+            return screen[x + y * WIDTH];
+        }
+
+        private bool Set(int x, int y)
         {
             x %= 64;
             y %= 32;
-            bool was = Get(x, y);
-            if(value)
-            {
-                Set(x, y);
-            }
-            else
-            {
-                Unset(x, y);
-                if (was)
-                    return true;
-            }
-            return false;
-        }
-
-        public bool Get(int x, int y)
-        {
-            return screen[x, y];
-        }
-
-        private void Set(int x, int y)
-        {
-            int xi = x / 8;
-            int xb = x % 8;
-
-            screen[x,y] = true;
-        }
-
-        private void Unset(int x, int y)
-        {
-            int xi = x / 8;
-            int xb = x % 8;
-
-            screen[x, y] = false;
+            screen[x + y * WIDTH] = !screen[x + y * WIDTH];
+            return !screen[x + y * WIDTH];
         }
 
         private void ClearDisplay()
         {
-            //Console.WriteLine("clearing display");
-            for (int x = 0; x < 64; x++)
-                for (int y = 0; y < 32; y++)
-                    screen[x, y] = false;
+            Console.WriteLine("clearing display");
+            for (int i = 0; i < WIDTH * HEIGHT; i++)
+                screen[i] = false;
         }
 
         #endregion
@@ -296,18 +272,22 @@ namespace Chip8.Engine
 
                 case 0xD000:
                     v[0xF] = 0;
-                    for( int y = 0; y < (opcode & 0x000F); y++)
+                    int height = opcode & 0x000F;
+                    int registerX = v[vx];
+                    int registerY = v[vy];
+                    int x, y, spr;
+                    for(y = 0; y < height; y++)
                     {
-                        int inc = 7;
-                        for (int x = 0; x < 8; x++)
+                        spr = memory[I + y];
+                        for(x = 0; x < 8; x++)
                         {
-                            bool num1 = (memory[I + y] & (1 << (inc % 8))) != 0;
-                            //Console.WriteLine(string.Format("reading bit {0} of adress {1} (value: 0x{3:X}): {2}", inc%8,I + y - vy, value,memory[I + y - vy]));
-                            if (SetPixel(x + v[vx], y + v[vy], num1))
-                                v[0xF] = 1;
-                            inc--;
+                            if((spr & 0x80) > 0)
+                            {
+                                if (Set(registerX + x, registerY + y))
+                                    v[0xF] = 1;
+                            }
+                            spr <<= 1;
                         }
-
                     }
                     DrawFlag = true;
                     break;
@@ -416,8 +396,7 @@ namespace Chip8.Engine
                 case 0x000E:
                     v[0xF] = (byte)((v[vx] & 0x80) >> 7);
                     num = v[vx] << 1;
-                    if (num > 255)
-                        num %= 256;
+                    num %= 256;
                     v[vx] = (byte)num;
                     break;
 
