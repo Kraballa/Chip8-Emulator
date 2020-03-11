@@ -7,6 +7,12 @@ namespace Chip8.Engine
 {
     public class CPU
     {
+        private enum State
+        {
+            Run,
+            Wait
+        }
+
         public const int WIDTH = 64;
         public const int HEIGHT = 32;
 
@@ -39,6 +45,8 @@ namespace Chip8.Engine
 
         public bool DrawFlag;
 
+        private State state;
+
         byte[] chip8_fontset = new byte[]
         {
           0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -70,6 +78,7 @@ namespace Chip8.Engine
             stack = new ushort[16];
             rand = new Random();
             this.rom = rom;
+            state = State.Run;
         }
 
         public void Initialize()
@@ -119,22 +128,30 @@ namespace Chip8.Engine
 
         public void Cycle()
         {
-            ReadInput();
-
-            //fetch opcode
-            opcode = (ushort)(memory[pc] << 8 | memory[pc + 1]);
-            pc += 2;
-            ExecuteOpcode();
-
-            //update timers
-            if (delayTimer > 0)
-                --delayTimer;
-
-            if (soundTimer > 0)
+            switch (state)
             {
-                if (soundTimer == 1)
-                    Console.Beep();
-                --soundTimer;
+                case State.Run:
+                    ReadInput();
+
+                    //fetch opcode
+                    opcode = (ushort)(memory[pc] << 8 | memory[pc + 1]);
+                    pc += 2;
+                    ExecuteOpcode();
+
+                    //update timers
+                    if (delayTimer > 0)
+                        --delayTimer;
+
+                    if (soundTimer > 0)
+                    {
+                        if (soundTimer == 1)
+                            Console.Beep();
+                        --soundTimer;
+                    }
+                    break;
+                case State.Wait:
+                    ExecuteOpcode();
+                    break;
             }
         }
 
@@ -232,13 +249,11 @@ namespace Chip8.Engine
                 case 0x4000:
                     if (v[vx] != (opcode & 0x00FF))
                         pc += 2;
-
                     break;
 
                 case 0x5000:
                     if (v[vx] == v[vy])
                         pc += 2;
-
                     break;
 
                 case 0x6000:
@@ -441,23 +456,19 @@ namespace Chip8.Engine
                     break;
 
                 case 0x000A:
-                    //currently nonfunctional. always returns with key 1.
+                    state = State.Wait;
                     bool[] oldInputs = (bool[])input.Clone();
-                    bool loop = false;
                     v[vx] = 1;
-                    while (loop)
+                    ReadInput();
+                    for (int i = 0; i < oldInputs.Length; i++)
                     {
-                        ReadInput();
-                        for(int i = 0; i < oldInputs.Length; i++)
+                        if (oldInputs[i] != input[i])
                         {
-                            if (oldInputs[i] != input[i])
-                            {
-                                loop = false;
-                                v[vx] = (byte)i;
-                            }
-                                
+                            state = State.Run;
+                            v[vx] = (byte)i;
+                            Console.WriteLine("detected input at " + i);
                         }
-                        Thread.Sleep(10);
+
                     }
                     break;
 
@@ -503,7 +514,7 @@ namespace Chip8.Engine
             }
         }
 
-#endregion
+        #endregion
 
     }
 }
